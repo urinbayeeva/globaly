@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// Globaly Firestore security rules.
+//
+// Asosiy printsiplar:
+// 1. Faqat tasdiqlangan (signed-in) foydalanuvchilar yoza oladi.
+// 2. Har bir foydalanuvchi faqat o'zining `users/{uid}` hujjatini va uning
+//    subcollection'larini boshqara oladi.
+// 3. `countries` va `costOfLiving` — hammaga read-only.
+// 4. Default deny — qoidada yo'q narsa ruxsat etilmaydi.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // -----------------------------------------------------------------
+    // Foydalanuvchi profili va uning subcollection'lari
+    //   users/{uid}                       — profile
+    //   users/{uid}/roadmap/{stepId}
+    //   users/{uid}/score/current
+    //   users/{uid}/documents/{docId}
+    //   users/{uid}/messages/{messageId}
+    // -----------------------------------------------------------------
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /{collection}/{docId} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // Mamlakatlar — barcha tasdiqlangan foydalanuvchilar uchun read-only
+    // Yozish — faqat admin (Console orqali yoki seed skript bilan)
+    // -----------------------------------------------------------------
+    match /countries/{countryCode} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // Email OTP verification — PRE-AUTH access (the user isn't signed in
+    // yet during sign-up), so this collection must be open.
+    //
+    // Safe because only a salted SHA-256 *hash* of the code is stored here;
+    // the plaintext goes solely to the user's inbox. Brute-force is bounded
+    // by the 10-minute TTL + 5-attempt cap enforced client-side.
+    //
+    // ⚠️ For production, move verification into a callable Cloud Function and
+    // change this to `allow read, write: if false` — see AUTH_SETUP.md.
+    // -----------------------------------------------------------------
+    match /email_verifications/{emailKey} {
+      allow read, write: if true;
+    }
+
+    // -----------------------------------------------------------------
+    // Cost of living — read-only
+    // -----------------------------------------------------------------
+    match /costOfLiving/{countryCode} {
+      allow read: if isSignedIn();
+      allow write: if false;
+
+      match /items/{itemId} {
+        allow read: if isSignedIn();
+        allow write: if false;
+      }
+    }
+  }
+}

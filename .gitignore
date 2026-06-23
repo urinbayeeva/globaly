@@ -1,0 +1,46 @@
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Generated
+*.g.dart
+*.freezed.dart
+*.gr.dart
+*.config.dart
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+**/android/captures/
+
+# Firebase secrets (platform configs — pulled from Firebase Console)
+google-services.json
+GoogleService-Info.plist
+# Note: firebase_options.dart is NOT secret (public API keys). Commit it.
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Misc
+*.log
+.DS_Store
+coverage/
