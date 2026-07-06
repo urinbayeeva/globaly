@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../../core/di/injector.dart';
@@ -8,6 +7,7 @@ import '../../../../core/i18n/app_strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radii.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/app_back_button.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_topbar.dart';
 import '../../data/services/visa_interview_service.dart';
@@ -43,7 +43,7 @@ class _InterviewView extends StatelessWidget {
                 AppTopbar(
                   title: T.of(context, 'interview.title'),
                   subtitle: _subtitleFor(context, s),
-                  leading: const _BackButton(),
+                  leading: const AppBackButton(),
                 ),
                 Expanded(child: _Body(state: s, cubit: cubit)),
                 if (s.status == InterviewStatus.asking)
@@ -574,26 +574,3 @@ class _AnswerBarState extends State<_AnswerBar> {
   }
 }
 
-class _BackButton extends StatelessWidget {
-  const _BackButton();
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.brand100,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: () => context.pop(),
-        child: const SizedBox(
-          width: 36,
-          height: 36,
-          child: Icon(
-            PhosphorIconsRegular.caretLeft,
-            color: AppColors.brand,
-            size: 18,
-          ),
-        ),
-      ),
-    );
-  }
-}

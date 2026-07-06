@@ -22,6 +22,7 @@ class AppRoutes {
   static const String chatHistory = '/chat-history';
   static const String translator = '/translator';
   static const String interview = '/interview';
+  static const String cultureCompass = '/culture-compass';
 
   static String universityDetailPath(String id) => '/universities/$id';
   static String explorePath(String country) =>

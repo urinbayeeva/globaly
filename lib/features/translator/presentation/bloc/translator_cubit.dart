@@ -67,9 +67,8 @@ class TranslatorCubit extends Cubit<TranslatorState> {
           imagePath: file.path,
         ),
       );
-      final TranslationResult result = _translator.isConfigured
-          ? await _translator.translate(File(file.path))
-          : translatorOfflineFallback();
+      final TranslationResult result =
+          await _translator.translate(File(file.path));
       if (isClosed) return;
       emit(
         state.copyWith(

@@ -10,7 +10,7 @@ import '../datasources/gemini_insights_datasource.dart'
     show
         GeminiInsightsDataSource,
         GeminiInsightsDataSourceImpl,
-        GeminiRateLimited;
+        AiRateLimited;
 import '../datasources/hipolabs_datasource.dart';
 import '../datasources/wikipedia_datasource.dart';
 
@@ -120,7 +120,7 @@ class UniversitiesRepositoryImpl implements UniversitiesRepository {
       _insights[id] = value;
       return value;
     }).catchError((Object e) {
-      if (e is GeminiRateLimited) {
+      if (e is AiRateLimited) {
         final DateTime expires = DateTime.now().add(e.retryAfter);
         _insightsRateLimitedUntil[id] = expires;
         _aiGlobalCooldownUntil = expires;

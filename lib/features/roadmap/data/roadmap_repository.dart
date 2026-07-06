@@ -15,14 +15,9 @@ class RoadmapRepository {
       country: country,
       purposeCode: purposeCode,
     );
-    if (plan == null || plan.steps.isEmpty) {
-      return _fallbackPlan(country: country, purposeCode: purposeCode);
-    }
+    if (plan == null || plan.steps.isEmpty) return const <RoadmapStep>[];
     return _fromPlan(plan);
   }
-
-  List<RoadmapStep> buildPlan() =>
-      _fallbackPlan(country: '', purposeCode: 'study');
 
   List<RoadmapStep> _fromPlan(RoadmapPlan plan) {
     final List<RoadmapStep> out = <RoadmapStep>[];
@@ -45,56 +40,5 @@ class RoadmapRepository {
       );
     }
     return out;
-  }
-
-  List<RoadmapStep> _fallbackPlan({
-    required String country,
-    required String purposeCode,
-  }) {
-    final String where = country.isEmpty ? 'destination' : country;
-    return <RoadmapStep>[
-      const RoadmapStep(
-        id: 'passport',
-        title: 'Get a valid international passport',
-        description: 'Required first — usually 4 weeks at the office',
-        state: StepState.done,
-        weeks: 0,
-      ),
-      RoadmapStep(
-        id: 'visa',
-        title: 'Apply for the right visa',
-        description: 'Visa type depends on $where',
-        state: StepState.current,
-        weeks: 5,
-      ),
-      const RoadmapStep(
-        id: 'documents',
-        title: 'Gather supporting documents',
-        description: 'Translations, financial proof, insurance',
-        state: StepState.upcoming,
-        weeks: 3,
-      ),
-      const RoadmapStep(
-        id: 'flight',
-        title: 'Book your flight',
-        description: 'Once visa is approved',
-        state: StepState.upcoming,
-        weeks: 0,
-      ),
-      const RoadmapStep(
-        id: 'register',
-        title: 'Register on arrival',
-        description: 'Address registration / local ID',
-        state: StepState.upcoming,
-        weeks: 2,
-      ),
-      const RoadmapStep(
-        id: 'residence',
-        title: 'Get residence permit',
-        description: 'Long-term legal status',
-        state: StepState.upcoming,
-        weeks: 6,
-      ),
-    ];
   }
 }

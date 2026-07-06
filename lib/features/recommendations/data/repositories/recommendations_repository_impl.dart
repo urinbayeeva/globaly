@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import '../../../../core/services/gemini_client.dart';
+import '../../../../core/services/backend_api.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../domain/entities/business_opportunity.dart';
 import '../../domain/entities/destination.dart';
@@ -74,7 +74,7 @@ class RecommendationsRepositoryImpl implements RecommendationsRepository {
         final T value = await fetch();
         onSuccess(value);
         return value;
-      } on GeminiRateLimited catch (e) {
+      } on AiRateLimited catch (e) {
         final Duration clamped = e.retryAfter > const Duration(seconds: 60)
             ? const Duration(seconds: 60)
             : e.retryAfter;

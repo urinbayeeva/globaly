@@ -51,6 +51,13 @@ class SmartToolsGrid extends StatelessWidget {
     AppColors.warning,
     AppRoutes.interview,
   );
+  static const _Tool _cultureCompass = _Tool(
+    'home.culture',
+    PhosphorIconsDuotone.compass,
+    AppColors.brand100,
+    AppColors.brand,
+    AppRoutes.cultureCompass,
+  );
 
   List<_Tool> _toolsFor(String purpose) {
     switch (purpose) {
@@ -60,13 +67,19 @@ class SmartToolsGrid extends StatelessWidget {
           _universityFinder,
           _translator,
           _interview,
+          _cultureCompass,
         ];
       case 'work':
       case 'tourism':
       case 'business':
       case 'family':
       default:
-        return const <_Tool>[_costOfLiving, _translator, _interview];
+        return const <_Tool>[
+          _costOfLiving,
+          _translator,
+          _interview,
+          _cultureCompass,
+        ];
     }
   }
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injector.dart';
+import '../../../../core/extensions/context_x.dart';
 import '../../../../core/i18n/app_strings.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/entities/home_snapshot.dart';
@@ -56,44 +59,60 @@ class HomeGreetingHeader extends StatelessWidget {
 class _BellButton extends StatelessWidget {
   const _BellButton();
 
+  Future<void> _onTap(BuildContext context) async {
+    final NotificationService notifications = sl<NotificationService>();
+    if (!notifications.enabled) {
+      context.showSnack(T.of(context, 'notif.disabledHint'));
+      return;
+    }
+    await notifications.requestPermission();
+    await notifications.show(
+      title: T.t('notif.reminderTitle'),
+      body: T.t('notif.reminderBody'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const <BoxShadow>[
-          BoxShadow(
-            color: Color(0x0A0D1424),
-            blurRadius: 2,
-            offset: Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: <Widget>[
-          const Icon(
-            Icons.notifications_none_rounded,
-            color: AppColors.ink,
-            size: 20,
-          ),
-          Positioned(
-            top: 9,
-            right: 11,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: AppColors.alert,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+    return GestureDetector(
+      onTap: () => _onTap(context),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x0A0D1424),
+              blurRadius: 2,
+              offset: Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: <Widget>[
+            const Icon(
+              Icons.notifications_none_rounded,
+              color: AppColors.ink,
+              size: 20,
+            ),
+            Positioned(
+              top: 9,
+              right: 11,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: AppColors.alert,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

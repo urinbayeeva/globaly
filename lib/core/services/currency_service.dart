@@ -2,110 +2,12 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 
+import '../config/env.dart';
 import '../utils/app_logger.dart';
 
 class CurrencyService {
   CurrencyService(this._dio);
   final Dio _dio;
-
-  static const String _endpoint = 'https://api.frankfurter.app/latest';
-
-  static const Set<String> _frankfurterSupported = <String>{
-    'AUD',
-    'BGN',
-    'BRL',
-    'CAD',
-    'CHF',
-    'CNY',
-    'CZK',
-    'DKK',
-    'EUR',
-    'GBP',
-    'HKD',
-    'HUF',
-    'IDR',
-    'ILS',
-    'INR',
-    'ISK',
-    'JPY',
-    'KRW',
-    'MXN',
-    'MYR',
-    'NOK',
-    'NZD',
-    'PHP',
-    'PLN',
-    'RON',
-    'SEK',
-    'SGD',
-    'THB',
-    'TRY',
-    'USD',
-    'ZAR',
-  };
-
-  static const Map<String, double> _usdFallback = <String, double>{
-    'UZS': 12600,
-    'RUB': 90,
-    'KZT': 480,
-    'KGS': 88,
-    'TJS': 10.5,
-    'TMT': 3.5,
-    'AZN': 1.7,
-    'AMD': 388,
-    'GEL': 2.7,
-    'BYN': 3.25,
-    'UAH': 41,
-    'MDL': 18,
-    'AED': 3.67,
-    'SAR': 3.75,
-    'QAR': 3.64,
-    'EGP': 49,
-    'PKR': 280,
-    'BDT': 120,
-    'LKR': 295,
-    'NPR': 134,
-    'VND': 25300,
-    'IRR': 42000,
-    'IQD': 1310,
-    'JOD': 0.71,
-    'LBP': 89500,
-    'NGN': 1600,
-    'KES': 129,
-    'GHS': 15,
-    'TZS': 2700,
-    'UGX': 3700,
-    'XOF': 605,
-    'XAF': 605,
-    'MAD': 9.9,
-    'TND': 3.1,
-    'DZD': 134,
-    'COP': 4200,
-    'CLP': 970,
-    'ARS': 1010,
-    'PEN': 3.78,
-    'VES': 49,
-    'BOB': 6.91,
-    'UYU': 42,
-    'PYG': 7900,
-    'CRC': 510,
-    'DOP': 60,
-    'GTQ': 7.8,
-    'HNL': 25,
-    'HTG': 132,
-    'JMD': 159,
-    'NIO': 36.8,
-    'PAB': 1,
-    'BHD': 0.38,
-    'OMR': 0.38,
-    'KWD': 0.31,
-    'YER': 250,
-    'BAM': 1.78,
-    'RSD': 107,
-    'MKD': 56,
-    'ALL': 91,
-    'ISK': 138,
-  };
 
   final Map<String, double> _cache = <String, double>{};
   final Map<String, Future<double?>> _inFlight = <String, Future<double?>>{};
@@ -352,17 +254,10 @@ class CurrencyService {
 
   Future<double?> rate(String fromCode, String toCode) async {
     if (fromCode == toCode) return 1.0;
+    if (Env.backendUrl.isEmpty) return null;
     final String key = '$fromCode|$toCode';
     final double? cached = _cache[key];
     if (cached != null) return cached;
-
-    final bool fromOk = _frankfurterSupported.contains(fromCode);
-    final bool toOk = _frankfurterSupported.contains(toCode);
-    if (!fromOk || !toOk) {
-      final double? offline = _offlineRate(fromCode, toCode);
-      if (offline != null) _cache[key] = offline;
-      return offline;
-    }
 
     final Future<double?>? inFlight = _inFlight[key];
     if (inFlight != null) return inFlight;
@@ -370,35 +265,20 @@ class CurrencyService {
     _inFlight[key] = task;
     final double? value = await task;
     unawaited(_inFlight.remove(key));
-    if (value != null) {
-      _cache[key] = value;
-      return value;
-    }
-
-    final double? offline = _offlineRate(fromCode, toCode);
-    if (offline != null) _cache[key] = offline;
-    return offline;
-  }
-
-  double? _offlineRate(String from, String to) {
-    final double? fromPerUsd = from == 'USD' ? 1.0 : _usdFallback[from];
-    final double? toPerUsd = to == 'USD' ? 1.0 : _usdFallback[to];
-    if (fromPerUsd == null || toPerUsd == null) return null;
-    return toPerUsd / fromPerUsd;
+    if (value != null) _cache[key] = value;
+    return value;
   }
 
   Future<double?> _fetch(String from, String to) async {
     try {
       final Response<dynamic> res = await _dio.get<dynamic>(
-        _endpoint,
+        '${Env.backendUrl}/v1/currency/rate',
         queryParameters: <String, dynamic>{'from': from, 'to': to},
-        options: Options(receiveTimeout: const Duration(seconds: 6)),
+        options: Options(receiveTimeout: const Duration(seconds: 10)),
       );
       final dynamic data = res.data;
       if (data is! Map<String, dynamic>) return null;
-      final Map<String, dynamic>? rates =
-          data['rates'] as Map<String, dynamic>?;
-      final dynamic raw = rates?[to];
+      final dynamic raw = data['rate'];
       if (raw is num) return raw.toDouble();
     } catch (e) {
       appLogger.w('💱 FX $from→$to failed: $e');

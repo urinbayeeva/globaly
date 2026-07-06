@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/i18n/app_strings.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/storage/prefs.dart';
 import '../../../../core/utils/app_logger.dart';
@@ -74,18 +75,13 @@ class RequiredDocsCubit extends Cubit<RequiredDocsState> {
         _prefs.getString(Prefs.kPurpose) ?? Purpose.study.code,
       );
 
-      final List<DocumentTemplate> fallback = _repo.fallback(
-        origin: origin,
-        destination: destination,
-        purpose: purpose,
-      );
       emit(
         state.copyWith(
           status: DocsStatus.loading,
           origin: origin,
           destination: destination,
           purpose: purpose,
-          docs: fallback,
+          docs: const <DocumentTemplate>[],
         ),
       );
 
@@ -99,6 +95,15 @@ class RequiredDocsCubit extends Cubit<RequiredDocsState> {
           '${docs.length} items');
 
       if (isClosed) return;
+      if (docs.isEmpty) {
+        emit(
+          state.copyWith(
+            status: DocsStatus.error,
+            error: T.t('docs.error'),
+          ),
+        );
+        return;
+      }
       emit(
         state.copyWith(
           status: DocsStatus.success,

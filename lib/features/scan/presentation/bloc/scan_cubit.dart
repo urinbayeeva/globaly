@@ -104,9 +104,7 @@ class ScanCubit extends Cubit<ScanState> {
     });
 
     try {
-      final ScanAnalysis analysis = _analyzer.isConfigured
-          ? await _analyzer.analyze(image)
-          : offlineFallback();
+      final ScanAnalysis analysis = await _analyzer.analyze(image);
       if (isClosed) return;
       emit(
         state.copyWith(

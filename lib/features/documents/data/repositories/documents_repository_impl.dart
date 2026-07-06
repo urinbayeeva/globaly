@@ -7,12 +7,10 @@ import '../../../recommendations/domain/entities/document_brief.dart';
 import '../../../recommendations/domain/repositories/recommendations_repository.dart';
 import '../../domain/entities/document_template.dart';
 import '../../domain/repositories/documents_repository.dart';
-import '../datasources/document_templates_db.dart';
 
 class DocumentsRepositoryImpl implements DocumentsRepository {
-  DocumentsRepositoryImpl(this._db, this._recs, this._countries);
+  DocumentsRepositoryImpl(this._recs, this._countries);
 
-  final DocumentTemplatesDb _db;
   final RecommendationsRepository _recs;
   final CountriesDb _countries;
 
@@ -32,28 +30,8 @@ class DocumentsRepositoryImpl implements DocumentsRepository {
       purposeCode: purpose.code,
       originCountry: originName,
     );
-    if (briefs.isNotEmpty) {
-      return briefs.map(_fromBrief).toList();
-    }
-
-    return fallback(
-      origin: origin,
-      destination: destination,
-      purpose: purpose,
-    );
+    return briefs.map(_fromBrief).toList();
   }
-
-  @override
-  List<DocumentTemplate> fallback({
-    required String origin,
-    required String destination,
-    required Purpose purpose,
-  }) =>
-      _db.templatesFor(
-        originCode: origin,
-        destinationCode: destination,
-        purpose: purpose,
-      );
 
   DocumentTemplate _fromBrief(DocumentBrief b) => DocumentTemplate(
         id: b.id.isEmpty ? b.title.toLowerCase().replaceAll(' ', '_') : b.id,

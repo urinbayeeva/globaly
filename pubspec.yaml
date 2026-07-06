@@ -69,6 +69,7 @@ dependencies:
 
   # First-run feature walkthroughs (coach marks).
   tutorial_coach_mark: ^1.2.12
+  flutter_local_notifications: ^22.0.1
   # OCR vaqtinchalik o'chirildi (Firebase iOS SDK bilan to'qnashuv).
   # Keyin Cloud Vision API yoki Tesseract'ga ulanadi.
   # google_mlkit_text_recognition: ^0.13.0
@@ -85,5 +86,5 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
-    # Bundled so API keys load at runtime even without --dart-define.
+    # Bundled so BACKEND_URL loads at runtime even without --dart-define.
     - .env.json

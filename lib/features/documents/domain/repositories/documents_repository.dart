@@ -7,10 +7,4 @@ abstract class DocumentsRepository {
     required String destination,
     required Purpose purpose,
   });
-
-  List<DocumentTemplate> fallback({
-    required String origin,
-    required String destination,
-    required Purpose purpose,
-  });
 }

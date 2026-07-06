@@ -1,7 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import '../../../../core/i18n/app_strings.dart';
-import '../../../../core/services/gemini_client.dart';
+import '../../../../core/services/backend_api.dart';
 import '../../../../core/storage/prefs.dart';
 import '../../../../core/utils/app_logger.dart';
 import '../../../profile_setup/data/datasources/countries_db.dart';
@@ -19,9 +20,9 @@ abstract class ChatDataSource {
 }
 
 class GeminiChatDataSource implements ChatDataSource {
-  GeminiChatDataSource(this._client, this._prefs, this._countries);
+  GeminiChatDataSource(this._api, this._prefs, this._countries);
 
-  final GeminiClient _client;
+  final BackendApi _api;
   final Prefs _prefs;
   final CountriesDb _countries;
 
@@ -41,9 +42,13 @@ class GeminiChatDataSource implements ChatDataSource {
     required List<ChatMessage> history,
     String? imagePath,
   }) async {
-    final String text = _client.isConfigured
-        ? await _callGemini(userText, history, imagePath)
-        : _fallback(userText);
+    String text;
+    try {
+      text = await _callBackend(userText, history, imagePath);
+    } catch (e) {
+      appLogger.w('💬 Chat backend failed: $e');
+      text = T.t('chat.unavailable');
+    }
     return ChatMessage(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       sender: ChatSender.assistant,
@@ -52,55 +57,57 @@ class GeminiChatDataSource implements ChatDataSource {
     );
   }
 
-  Future<String> _callGemini(
+  Future<String> _callBackend(
     String userText,
     List<ChatMessage> history,
     String? imagePath,
   ) async {
-    try {
-      final List<Map<String, String>> allTurns = history
-          .where((ChatMessage m) => m.id != 'welcome')
-          .map<Map<String, String>>(
-            (ChatMessage m) => <String, String>{
-              'role': m.sender == ChatSender.user ? 'user' : 'model',
-              'text': m.text,
-            },
-          )
-          .toList();
+    final List<Map<String, String>> allTurns = history
+        .where((ChatMessage m) => m.id != 'welcome')
+        .map<Map<String, String>>(
+          (ChatMessage m) => <String, String>{
+            'role': m.sender == ChatSender.user ? 'user' : 'model',
+            'text': m.text,
+          },
+        )
+        .toList();
 
-      const int maxTurns = 12;
-      final List<Map<String, String>> turns = allTurns.length > maxTurns
-          ? allTurns.sublist(allTurns.length - maxTurns)
-          : allTurns;
+    const int maxTurns = 12;
+    final List<Map<String, String>> turns = allTurns.length > maxTurns
+        ? allTurns.sublist(allTurns.length - maxTurns)
+        : allTurns;
 
-      List<int>? imageBytes;
-      String mime = 'image/jpeg';
-      if (imagePath != null && imagePath.isNotEmpty) {
-        final File file = File(imagePath);
-        if (await file.exists()) {
-          imageBytes = await file.readAsBytes();
-          mime = _mimeFor(imagePath);
-        }
+    String? imageBase64;
+    String mime = 'image/jpeg';
+    if (imagePath != null && imagePath.isNotEmpty) {
+      final File file = File(imagePath);
+      if (await file.exists()) {
+        imageBase64 = base64Encode(await file.readAsBytes());
+        mime = _mimeFor(imagePath);
       }
-
-      final String prompt = userText.trim().isEmpty && imageBytes != null
-          ? 'Describe this image and explain anything relevant to someone '
-              'moving abroad (e.g. what a form/sign/document means and what '
-              'to do next).'
-          : userText;
-
-      final String raw = await _client.generateText(
-        systemPrompt: _systemPrompt(),
-        history: turns,
-        prompt: prompt,
-        imageBytes: imageBytes,
-        imageMimeType: mime,
-      );
-      return _stripMarkdown(raw);
-    } catch (e) {
-      appLogger.w('💬 Gemini chat failed: $e');
-      return _fallback(userText);
     }
+
+    final String? destCode = _prefs.getString(Prefs.kDestinationCountry);
+    final Country? country =
+        destCode == null ? null : _countries.byCode(destCode);
+    final Purpose purpose = Purpose.fromCode(
+      _prefs.getString(Prefs.kPurpose) ?? Purpose.study.code,
+    );
+
+    final Map<String, dynamic> data =
+        await _api.post('/v1/chat', <String, dynamic>{
+      'message': userText,
+      'history': turns,
+      if (imageBase64 != null) 'image_base64': imageBase64,
+      'image_mime_type': mime,
+      'destination_country': country?.name ?? '',
+      'purpose': purpose.code,
+    });
+    final String text = (data['text'] as String?)?.trim() ?? '';
+    if (text.isEmpty) {
+      throw const FormatException('Backend returned no text');
+    }
+    return _stripMarkdown(text);
   }
 
   String _mimeFor(String path) {
@@ -140,60 +147,5 @@ class GeminiChatDataSource implements ChatDataSource {
     s = s.replaceAll(_bulletDash, '• ');
     s = s.replaceAll(_blankRuns, '\n\n');
     return s.trim();
-  }
-
-  String _systemPrompt() {
-    final String? destCode = _prefs.getString(Prefs.kDestinationCountry);
-    final Country? country =
-        destCode == null ? null : _countries.byCode(destCode);
-    final Purpose purpose = Purpose.fromCode(
-      _prefs.getString(Prefs.kPurpose) ?? Purpose.study.code,
-    );
-
-    final String destLine = country == null
-        ? 'The user has not picked a destination country yet.'
-        : 'The user is planning to move to ${country.name}.';
-    return '''
-You are the Globaly assistant — a friendly, practical helper for people
-moving abroad. Keep answers concise (2–4 short paragraphs max), specific,
-and grounded in commonly available public knowledge. If a question needs
-country-specific facts you are unsure about, say so and point the user at
-the official source (embassy, ministry, university).
-
-User context:
-- $destLine
-- Stated purpose: ${purpose.label}.
-
-Style:
-- Use plain language; no jargon unless you define it.
-- When listing steps use short numbered points (e.g. "1.", "2.") on new
-  lines — do NOT use bullet stars or hyphens.
-- Output PLAIN TEXT ONLY. No markdown whatsoever: no **bold**, no *italics*,
-  no _underscores_, no `backticks`, no #headings, no [links](urls) — just
-  the words. The chat UI shows raw characters, so any markdown marks will
-  appear as literal punctuation.
-- Never invent prices, dates, or document names — round to typical ranges
-  or say "verify on the official site".
-- Politely decline anything outside the moving-abroad / immigration scope.
-''';
-  }
-
-  String _fallback(String userText) {
-    final String t = userText.toLowerCase();
-    if (t.contains('visa')) {
-      return 'For most visas you need a passport, financial proof, an invitation '
-          'or acceptance letter, and a paid fee. Check the Required Documents '
-          'card on Home for your destination-specific list.';
-    }
-    if (t.contains('ielts') || t.contains('language')) {
-      return 'Most universities accept IELTS 6.5+ for bachelor and 7.0+ for master. '
-          'Set your score on the Success Score page to see which schools match.';
-    }
-    if (t.contains('contract') || t.contains('sign')) {
-      return 'Never sign a contract abroad before scanning. The Scan tab will '
-          'flag any clauses that look risky.';
-    }
-    return 'AI is unavailable right now. Try the Required Documents card or the '
-        'Roadmap tab for step-by-step guidance, and ask me again in a moment.';
   }
 }

@@ -8,6 +8,7 @@ import '../../../../core/i18n/locale_notifier.dart';
 
 import '../../../../core/di/injector.dart';
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/storage/prefs.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radii.dart';
@@ -82,6 +83,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _toggleNotifications(bool value) async {
     await sl<Prefs>().setBool(Prefs.kNotifications, value);
+    final NotificationService notifications = sl<NotificationService>();
+    if (value) {
+      await notifications.requestPermission();
+      await notifications.show(
+        title: T.t('notif.onTitle'),
+        body: T.t('notif.onBody'),
+      );
+    } else {
+      await notifications.cancelAll();
+    }
     if (!mounted) return;
     setState(() => _notifications = value);
   }

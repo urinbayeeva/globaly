@@ -93,7 +93,7 @@ class RoadmapCubit extends Cubit<RoadmapState> {
     if (country == null) {
       _loadedKey = key;
       _inFlight = false;
-      emit(state.copyWith(steps: _repo.buildPlan(), loading: false));
+      emit(state.copyWith(steps: const <RoadmapStep>[], loading: false));
       return;
     }
 

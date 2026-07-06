@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injector.dart';
+import '../../../../core/storage/prefs.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radii.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../data/city_cost_db.dart';
-import '../../domain/city_cost.dart';
+import '../../../../core/widgets/app_shimmer.dart';
+import '../../../../core/widgets/async_state_view.dart';
+import '../../../profile_setup/data/datasources/countries_db.dart';
+import '../../../profile_setup/domain/entities/country.dart';
+import '../bloc/cost_cubit.dart';
 import '../widgets/city_cost_card.dart';
 
 class CostOfLivingPage extends StatelessWidget {
@@ -13,8 +19,33 @@ class CostOfLivingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<CityCost> cities = List<CityCost>.of(CityCostDb().all())
-      ..sort((CityCost a, CityCost b) => a.total.compareTo(b.total));
+    final String? code = sl<Prefs>().getString(Prefs.kDestinationCountry);
+    final Country? country =
+        code == null ? null : sl<CountriesDb>().byCode(code);
+
+    return BlocProvider<CostCubit>(
+      create: (_) => sl<CostCubit>()
+        ..load(
+          country: country?.name ?? '',
+          flag: country?.flagEmoji ?? '🌍',
+        ),
+      child: _CostView(country: country),
+    );
+  }
+}
+
+class _CostView extends StatelessWidget {
+  const _CostView({required this.country});
+
+  final Country? country;
+
+  void _retry(BuildContext context) => context.read<CostCubit>().load(
+        country: country?.name ?? '',
+        flag: country?.flagEmoji ?? '🌍',
+      );
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -30,9 +61,24 @@ class CostOfLivingPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _Banner(),
+            _Banner(country: country?.name ?? ''),
             const SizedBox(height: 18),
-            ...cities.map((CityCost c) => CityCostCard(cost: c)),
+            BlocBuilder<CostCubit, CostState>(
+              builder: (BuildContext context, CostState state) {
+                return AsyncStateView<void>(
+                  isLoading: state.loading,
+                  error: state.error,
+                  isEmpty: state.cities.isEmpty,
+                  onRetry: () => _retry(context),
+                  emptyLabel: 'No cost data yet.',
+                  loadingPlaceholder: (_) => const _CostSkeleton(),
+                  builder: (_) => Column(
+                    children:
+                        state.cities.map((c) => CityCostCard(cost: c)).toList(),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -41,8 +87,15 @@ class CostOfLivingPage extends StatelessWidget {
 }
 
 class _Banner extends StatelessWidget {
+  const _Banner({required this.country});
+
+  final String country;
+
   @override
   Widget build(BuildContext context) {
+    final String subtitle = country.isEmpty
+        ? 'Average monthly spend for one person, in USD.'
+        : 'Estimated monthly spend in $country for one person, in USD.';
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -67,7 +120,7 @@ class _Banner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Average monthly spend for one person, in USD. Tap a city for details.',
+                  subtitle,
                   style: AppTypography.bodyM
                       .copyWith(color: Colors.white.withValues(alpha: 0.9)),
                 ),
@@ -76,6 +129,23 @@ class _Banner extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CostSkeleton extends StatelessWidget {
+  const _CostSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: <Widget>[
+        ShimmerCard(height: 120),
+        SizedBox(height: 12),
+        ShimmerCard(height: 120),
+        SizedBox(height: 12),
+        ShimmerCard(height: 120),
+      ],
     );
   }
 }
