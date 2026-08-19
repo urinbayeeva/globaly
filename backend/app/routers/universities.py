@@ -66,7 +66,7 @@ Fields:
 - notes (string, 1–2 sentences): who qualifies for the scholarship and any caveats
 """
     return await mapped(
-        lambda: ai.generate_json(
+        lambda: ai.generate_json_cached(
             JsonRequest(prompt=prompt, json_schema=_SCHEMA, locale=req.locale)
         )
     )

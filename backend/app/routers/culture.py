@@ -102,7 +102,7 @@ Return JSON with:
     - "explanation": one sentence on why that option is best
 """
     return await mapped(
-        lambda: ai.generate_json(
+        lambda: ai.generate_json_cached(
             JsonRequest(
                 prompt=prompt,
                 json_schema=_SCHEMA,

@@ -67,11 +67,11 @@ class GeminiCultureDataSource implements CultureDataSource {
 
     final List<CultureScenario> scenarios = _list(j['scenarios'])
         .map((Map<String, dynamic> s) {
-          final List<String> options = ((s['options'] as List<dynamic>?) ??
-                  <dynamic>[])
-              .map((dynamic e) => _str(e))
-              .where((String o) => o.isNotEmpty)
-              .toList();
+          final List<String> options =
+              ((s['options'] as List<dynamic>?) ?? <dynamic>[])
+                  .map((dynamic e) => _str(e))
+                  .where((String o) => o.isNotEmpty)
+                  .toList();
           return CultureScenario(
             situation: _str(s['situation']),
             options: options,

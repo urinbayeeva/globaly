@@ -2,14 +2,21 @@ from typing import Any
 
 from ..errors import ProviderRateLimited, ProviderUnavailable
 from ..schemas.ai import JsonRequest, TextRequest
+from .cache import ResponseCache
 from .gemini import GeminiProvider
 from .groq import GroqProvider
 
 
 class AiGateway:
-    def __init__(self, gemini: GeminiProvider, groq: GroqProvider):
+    def __init__(
+        self,
+        gemini: GeminiProvider,
+        groq: GroqProvider,
+        cache: ResponseCache | None = None,
+    ):
         self._gemini = gemini
         self._groq = groq
+        self._cache = cache
 
     @property
     def providers(self) -> dict[str, bool]:
@@ -26,6 +33,14 @@ class AiGateway:
     async def generate_json(self, req: JsonRequest) -> dict[str, Any]:
         return await self._run(
             lambda p: p.generate_json(req)
+        )
+
+    async def generate_json_cached(self, req: JsonRequest) -> dict[str, Any]:
+        if self._cache is None or req.image_base64:
+            return await self.generate_json(req)
+        key = ResponseCache.key(req.model_dump())
+        return await self._cache.get_or_create(
+            key, lambda: self.generate_json(req)
         )
 
     async def _run(self, call):

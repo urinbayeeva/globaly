@@ -20,6 +20,7 @@ from .routers import (
     translator,
     universities,
 )
+from .services.cache import ResponseCache
 from .services.currency import CurrencyService
 from .services.email import EmailService
 from .services.gateway import AiGateway
@@ -36,7 +37,11 @@ async def lifespan(app: FastAPI):
     )
     app.state.http = http
     app.state.ai = AiGateway(
-        GeminiProvider(http, settings), GroqProvider(http, settings)
+        GeminiProvider(http, settings),
+        GroqProvider(http, settings),
+        ResponseCache(
+            settings.ai_cache_ttl_seconds, settings.ai_cache_max_entries
+        ),
     )
     app.state.email = EmailService(http, settings)
     app.state.currency = CurrencyService(http, settings)

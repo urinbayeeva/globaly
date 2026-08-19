@@ -9,7 +9,6 @@ import '../../../../core/theme/app_radii.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_back_button.dart';
 import '../../../../core/widgets/app_button.dart';
-import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_shimmer.dart';
 import '../../../../core/widgets/app_topbar.dart';
 import '../../../../core/widgets/async_state_view.dart';
@@ -18,6 +17,7 @@ import '../../../profile_setup/data/datasources/countries_db.dart';
 import '../../../profile_setup/domain/entities/country.dart';
 import '../../domain/culture_briefing.dart';
 import '../bloc/culture_cubit.dart';
+import '../widgets/culture_know_deck.dart';
 import '../widgets/culture_scenario_card.dart';
 
 class CultureCompassPage extends StatelessWidget {
@@ -169,12 +169,12 @@ class _Content extends StatelessWidget {
         ],
         if (briefing.sections.isNotEmpty) ...<Widget>[
           SectionLabel(T.of(context, 'culture.knowLabel')),
-          const SizedBox(height: 10),
-          for (final CultureSection section in briefing.sections) ...<Widget>[
-            _SectionCard(section: section),
-            const SizedBox(height: 12),
-          ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+          CultureKnowDeck(
+            country: briefing.country,
+            sections: briefing.sections,
+          ),
+          const SizedBox(height: 22),
         ],
         if (briefing.scenarios.isNotEmpty)
           _Quiz(briefing: briefing, state: state, cubit: cubit),
@@ -236,15 +236,18 @@ class _FactsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
+    return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 2.5,
-      children:
-          facts.map((CultureFact f) => _FactChip(fact: f)).toList(),
+      padding: EdgeInsets.zero,
+      itemCount: facts.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        mainAxisExtent: 132,
+      ),
+      itemBuilder: (BuildContext context, int i) => _FactChip(fact: facts[i]),
     );
   }
 }
@@ -257,46 +260,50 @@ class _FactChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ({IconData icon, Color tint, Color fg}) v = _visualFor(fact.kind);
-    return AppCard(
-      padding: const EdgeInsets.all(12),
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: v.tint,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: v.tint,
-              borderRadius: BorderRadius.circular(AppRadii.sm),
-            ),
-            child: Icon(v.icon, color: v.fg, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(
+          Row(
+            children: <Widget>[
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: v.fg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(v.icon, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
                   T.of(context, _labelKey(fact.kind)).toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.micro.copyWith(
-                    color: AppColors.gray500,
-                    letterSpacing: 0.4,
+                    color: v.fg,
+                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  fact.value,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodyM.copyWith(
-                    color: AppColors.ink,
-                    fontWeight: FontWeight.w600,
-                    height: 17 / 13,
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            fact.value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.bodyL.copyWith(
+              color: AppColors.ink,
+              fontWeight: FontWeight.w700,
+              height: 1.2,
             ),
           ),
         ],
@@ -352,69 +359,6 @@ class _FactChip extends StatelessWidget {
           fg: AppColors.gray500,
         );
     }
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.section});
-
-  final CultureSection section;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            section.title,
-            style: AppTypography.title,
-          ),
-          const SizedBox(height: 12),
-          for (int i = 0; i < section.tips.length; i++)
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: i == section.tips.length - 1 ? 0 : 10,
-              ),
-              child: _TipRow(tip: section.tips[i]),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TipRow extends StatelessWidget {
-  const _TipRow({required this.tip});
-
-  final CultureTip tip;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color tone = tip.isDo ? AppColors.success : AppColors.alert;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.only(top: 1),
-          child: Icon(
-            tip.isDo ? Icons.check_circle_rounded : Icons.cancel_rounded,
-            color: tone,
-            size: 18,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            tip.text,
-            style: AppTypography.bodyL.copyWith(
-              color: AppColors.gray800,
-              height: 20 / 14,
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
 
@@ -547,9 +491,7 @@ class _ResultBanner extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              perfect
-                  ? Icons.emoji_events_rounded
-                  : Icons.school_rounded,
+              perfect ? Icons.emoji_events_rounded : Icons.school_rounded,
               color: tone,
               size: 26,
             ),
@@ -566,8 +508,7 @@ class _ResultBanner extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   score,
-                  style:
-                      AppTypography.bodyM.copyWith(color: AppColors.gray700),
+                  style: AppTypography.bodyM.copyWith(color: AppColors.gray700),
                 ),
               ],
             ),

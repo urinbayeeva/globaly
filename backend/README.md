@@ -42,6 +42,18 @@ docker run -p 8000:8000 --env-file backend/.env globaly-api
 | `RESEND_FROM` | From address for OTP emails |
 | `FIREBASE_CREDENTIALS` | Path to a Firebase service-account JSON; when set, `/v1/ai/*` and `/v1/email/*` require `Authorization: Bearer <Firebase ID token>` |
 | `CORS_ORIGINS` | Comma-separated allowed origins (`*` by default) |
+| `AI_CACHE_TTL_SECONDS` | How long deterministic AI responses are cached (default `21600` = 6h) |
+| `AI_CACHE_MAX_ENTRIES` | Max cached AI responses before oldest are evicted (default `512`) |
+
+## Response caching
+
+Deterministic feature endpoints (`/v1/culture`, `/v1/universities/insights`,
+`/v1/cost-of-living`, `/v1/recommendations/*`) cache their AI result by request
+content. Identical requests are served from memory instead of re-calling the
+provider, and concurrent identical requests are coalesced into a **single**
+upstream call (single-flight), so a burst of users asking the same thing costs
+one API call rather than one per user. Per-user or image endpoints (`/v1/chat`,
+`/v1/interview`, `/v1/scan`, `/v1/translate`, `/v1/ai/*`) are never cached.
 
 ## Endpoints
 

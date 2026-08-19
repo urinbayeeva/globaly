@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     groq_models: str = "llama-3.3-70b-versatile,llama-3.1-8b-instant"
     groq_vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
     currency_cache_ttl_seconds: int = 3600
+    ai_cache_ttl_seconds: int = 21600
+    ai_cache_max_entries: int = 512
 
     @property
     def cors_origin_list(self) -> list[str]:

@@ -92,8 +92,13 @@ class _OptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ({Color bg, Color border, Color fg, IconData? icon, Color iconColor})
-        p = switch (state) {
+    final ({
+      Color bg,
+      Color border,
+      Color fg,
+      IconData? icon,
+      Color iconColor
+    }) p = switch (state) {
       _OptionState.idle => (
           bg: Colors.white,
           border: AppColors.gray200,
@@ -185,9 +190,7 @@ class _Explanation extends StatelessWidget {
           Row(
             children: <Widget>[
               Icon(
-                correct
-                    ? Icons.check_circle_rounded
-                    : Icons.info_rounded,
+                correct ? Icons.check_circle_rounded : Icons.info_rounded,
                 color: tone,
                 size: 16,
               ),

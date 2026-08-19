@@ -66,7 +66,7 @@ Return an "items" array. For each city:
 - miscMonthly (int)
 """
     return await mapped(
-        lambda: ai.generate_json(
+        lambda: ai.generate_json_cached(
             JsonRequest(prompt=prompt, json_schema=_SCHEMA, locale=req.locale)
         )
     )

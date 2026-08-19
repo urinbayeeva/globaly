@@ -26,7 +26,7 @@ async def _json(
     ai: AiGateway, prompt: str, schema: dict[str, Any], locale: str
 ) -> dict[str, Any]:
     return await mapped(
-        lambda: ai.generate_json(
+        lambda: ai.generate_json_cached(
             JsonRequest(prompt=prompt, json_schema=schema, locale=locale)
         )
     )
